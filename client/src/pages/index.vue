@@ -1,6 +1,9 @@
 <template>
   <div class="pi-extractor">
-    <h2>Extracteur de Dades del PI (Amb IA Local)</h2>
+    <div class="header">
+      <h2>Extracteur de Dades del PI (Amb IA Local)</h2>
+      <button @click="logout" class="logout-button">Tancar Sessió</button>
+    </div>
     <input type="file" @change="handleFileUpload" accept=".docx" />
     
     <button @click="uploadFile" :disabled="!file || isLoading" class="upload-button">
@@ -42,100 +45,99 @@
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      file: null,
-      extractedData: null,
-      isLoading: false,
-      error: null,
-      apiUrl: 'http://localhost:4000/upload' // URL del teu servidor Node.js
-    };
-  },
-  methods: {
-    handleFileUpload(event) {
-      this.file = event.target.files[0];
-      this.extractedData = null;
-      this.error = null;
-    },
-    async uploadFile() {
-      if (!this.file) return;
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
-      this.isLoading = true;
-      this.error = null;
+const router = useRouter();
+const file = ref(null);
+const extractedData = ref(null);
+const isLoading = ref(false);
+const error = ref(null);
+const apiUrl = 'http://localhost:4000/upload';
 
-      const formData = new FormData();
-      // 'piFile' ha de coincidir amb el nom del camp a Multer (upload.single('piFile'))
-      formData.append('piFile', this.file); 
+const handleFileUpload = (event) => {
+  file.value = event.target.files[0];
+  extractedData.value = null;
+  error.value = null;
+};
 
-      try {
-        // Crida al backend utilitzant fetch natiu
-        const response = await fetch(this.apiUrl, {
-          method: 'POST',
-          body: formData 
-        });
+const uploadFile = async () => {
+  if (!file.value) return;
 
-        // 1. Maneig de la resposta (error HTTP)
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Error del servidor: ${response.status}. Detall: ${errorText.substring(0, 100)}...`);
-        }
+  isLoading.value = true;
+  error.value = null;
 
-        // 2. Conversió a JSON
-        const data = await response.json();
-        this.extractedData = data.data;
+  const formData = new FormData();
+  formData.append('piFile', file.value); 
 
-      } catch (err) {
-        console.error('Error en la petició o processament:', err);
-        // El missatge d'error ha de ser clar sobre la causa
-        this.error = `No es pot extreure les dades. Assegura't que el servidor Node/Ollama està en marxa. Detall: ${err.message}`;
-        this.extractedData = null;
-      } finally {
-        this.isLoading = false;
-      }
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: formData 
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error del servidor: ${response.status}. Detall: ${errorText.substring(0, 100)}...`);
     }
+
+    const data = await response.json();
+    extractedData.value = data.data;
+
+  } catch (err) {
+    console.error('Error en la petició o processament:', err);
+    error.value = `No es pot extreure les dades. Assegura't que el servidor Node/Ollama està en marxa. Detall: ${err.message}`;
+    extractedData.value = null;
+  } finally {
+    isLoading.value = false;
   }
+};
+
+const logout = () => {
+  localStorage.removeItem('user');
+  router.push('/login');
 };
 </script>
 
 <style scoped>
 .pi-extractor {
-  /* Estils del contenidor principal */
-  font-family: 'Montserrat', sans-serif; /* Font més moderna */
+  font-family: 'Montserrat', sans-serif;
   max-width: 850px;
   margin: 40px auto;
   padding: 30px;
-  border: 1px solid #dcdcdc; /* Línia suau */
+  border: 1px solid #dcdcdc;
   border-radius: 10px;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); /* Ombra subtil */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
   background-color: #fcfcfc;
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
 h2 {
-    /* Títol principal */
-    color: #1a5c88; /* Blau fosc institucional */
+    color: #1a5c88;
     border-bottom: 3px solid #1a5c88; 
     padding-bottom: 15px;
-    margin-bottom: 25px;
     font-weight: 600;
 }
 
 h4 {
-    /* Títols de les seccions (Dades, Motiu, Adaptacions) */
     color: #4a4a4a; 
     margin-top: 30px;
     margin-bottom: 10px;
     font-size: 1.2em;
     font-weight: 600;
-    border-left: 5px solid #6c757d; /* Detall gris fosc */
+    border-left: 5px solid #6c757d;
     padding-left: 10px;
 }
 
-/* --- Elements d'interacció --- */
-
 .upload-button {
-    background-color: #28a745; /* Verd d'èxit */
+    background-color: #28a745;
     color: white;
     border: none;
     padding: 10px 18px;
@@ -154,19 +156,31 @@ h4 {
     cursor: not-allowed;
 }
 
-/* --- Contenidors de Resultats --- */
+.logout-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+    background-color: #c82333;
+}
 
 .results-container {
   color: black;
   margin-top: 30px;
   padding: 25px;
-  background-color: #e9f7ef; /* Fons verd clar per resultats positius */
+  background-color: #e9f7ef;
   border: 1px solid #c3e6cb;
   border-radius: 8px;
 }
 
 .data-group {
-    /* Fons clar per a la informació agrupada (Nom, Data, Curs) */
     padding: 15px;
     background-color: #ffffff;
     border: 1px solid #dee2e6;
@@ -177,7 +191,7 @@ h4 {
     margin: 5px 0;
 }
 strong {
-    color: #1a5c88; /* Blaus per ressaltar etiquetes */
+    color: #1a5c88;
 }
 .diagnostic-text {
     font-style: italic;
@@ -188,36 +202,31 @@ strong {
     border-radius: 4px;
 }
 
-/* --- Llistes d'Orientacions i Adaptacions --- */
-
 .data-list {
   list-style-type: none;
   padding-left: 0;
-  margin-left: 15px; /* Sagnat per les llistes */
+  margin-left: 15px;
 }
 
 .data-list li, .orientations-list div {
   margin-bottom: 10px;
   padding: 8px 10px;
   background-color: #ffffff;
-  border-left: 4px solid #1a5c88; /* Destacar cada ítem amb blau */
+  border-left: 4px solid #1a5c88;
   border-radius: 4px;
   line-height: 1.4;
 }
 
-/* Netejar el darrer element de la llista (només si fos un <ul>/<li>) */
 .data-list li:last-child {
     border-bottom: none;
 }
-/* Numeració clara per les orientacions */
 .orientations-list div {
-    border-left: 4px solid #6c757d; /* Utilitzar un color diferent per diferenciar-les */
+    border-left: 4px solid #6c757d;
 }
 
-/* --- Missatge d'Error --- */
 .error-message {
   color: white;
-  background-color: #dc3545; /* Vermell fort */
+  background-color: #dc3545;
   font-weight: bold;
   margin-top: 15px;
   padding: 10px;
