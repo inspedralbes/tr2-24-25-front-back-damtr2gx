@@ -49,16 +49,6 @@
               ¿No tienes cuenta? Regístrate aquí.
             </v-btn>
           </v-card-actions>
-          <v-card-actions class="pb-4 px-4">
-            <v-btn
-              block
-              color="secondary"
-              size="large"
-              @click="redirectToRegister"
-            >
-              No tienes cuenta? Regístrate
-            </v-btn>
-          </v-card-actions>
         </v-card>
       </v-col>
     </v-row>

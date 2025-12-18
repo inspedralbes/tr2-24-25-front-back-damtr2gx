@@ -125,8 +125,6 @@ const uploadFile = async () => {
         this.isLoading = false;
       }
     }
-  }
-};
 
 const logout = () => {
   localStorage.removeItem('user');
